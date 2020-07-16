@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Talca Ciclovias</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+  
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/leaflet.markercluster.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/leaflet.markercluster.js'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/MarkerCluster.css' rel='stylesheet' />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/MarkerCluster.Default.css' rel='stylesheet' />
+
+	
+</head>
+<body>
+    <div class="container">
+        <div class="jumbotron">
+          <h1>Talca Ciclovias</h1>
+        </div>
+        <div class="row">
+          <div class="col-sm-12">
+            <div id="mapid" style="width: 99%; height: 400px;"></div>
+          </div>
+          <div class="col-sm-2 my-4">
+                <div class="panel-group">
+                        <div class="panel panel-default my-4">
+                                <div class="panel-heading" id="panel-routing">Routing</div>
+                                <div class="panel-body"><button type="button" class="btn btn-default" id="show-graph">Graph Layout</button></div>
+                                <div class="panel-body"><button type="button" class="btn btn-default" id="show-nodes">Node Layout</button></div>
+                                <div class="alert alert-success">
+                                    <strong>Success!</strong> Indicates a successful or positive action.
+                                </div>              
+                        </div>
+                </div>         
+            </div>
+            <div class="col-sm-2 my-4">
+                <div class="panel panel-default my-4">
+                    <div class="panel-heading" id="panel-routing">Source and target</div>
+                    <div id="show-pair"></div>                            
+                </div>
+            </div>
+
+      </div>
+
+<script>
+    $(".alert-success").hide();
+	var mymap = L.map('mapid').setView([-35.4074204, -71.6509038], 12);
+    var mapboxAccessToken = 'pk.eyJ1Ijoic2hlcm5hOTAiLCJhIjoiY2puemMxeDhqMWgzODN2bmRuZ3Rzem9hdCJ9.ZSnfYHYewXKUhTbnOaer3w';
+	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token='+ mapboxAccessToken,{
+		maxZoom: 18,
+		id: 'mapbox.streets'
+	}).addTo(mymap);
+
+    function show_graph(map){
+        var myStyle = {
+            "color": "#ff7800",
+            "weight": 0.1,
+            "opacity": 0.65
+        };
+        var geoJsonLayer = new L.geoJson();
+        geoJsonLayer.addTo(map);
+        $.ajax({
+        dataType: "json",
+        url: "/draw_graph",
+        success: function(data) {
+            $(data.features).each(function(key, data) {
+                geoJsonLayer.addData(data);
+            });
+        }
+        });
+    }
+    var markers = L.markerClusterGroup();
+
+    var source_target =[];
+    function show_nodes(map){
+        var geoJsonLayer = new L.geoJson();
+        $.ajax({
+        dataType: "json",
+        url: "/draw_nodes",
+        success: function(data) {
+            $(data.features).each(function(key, data) {
+                geoJsonLayer.addData(data);
+                var marker=L.marker(new L.LatLng(data.geometry.coordinates[1],data.geometry.coordinates[0]))
+                .bindPopup(data.properties.name)
+                .on('click', function() {  
+                    source_target.push(marker);
+                    var point = marker.getPopup().getContent()
+                    // another ajax call
+                    $.ajax({
+                        type: 'POST',
+                        url: "/intersection",
+                        data: point, // id from popup
+                        dataType: 'text',
+                        success: function(res){
+                            document.getElementById("show-pair").textContent += res // add res to tag
+                            console.log(res)
+                        }
+                    })
+                    
+                    console.log(marker)
+                })
+                .addTo(markers);
+            });
+        }
+        });
+        
+        //markers.addLayer(geoJsonLayer);
+        map.addLayer(markers);
+    }
+
+    var source_target =[];
+	function onMapClick(e) {
+        var marker = L.marker(e.latlng).addTo(mymap);
+        source_target.push(marker);
+    }
+
+    mymap.on('click', onMapClick);
+
+    document.getElementById("show-pair").innerHTML = source_target;
+
+    $('#show-graph').click( function() {
+        show_graph(mymap);
+    });
+    $('#show-nodes').click( function() {
+        show_nodes(mymap);
+    });
+</script>
+
+
+
+</body>
+</html>

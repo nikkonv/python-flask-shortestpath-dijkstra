@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Talca Ciclovias</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- jquery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- bootstrap 3 js-->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <!-- bootstrap 3 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">-->
+  
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/leaflet.markercluster.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/leaflet.markercluster.js'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/MarkerCluster.css' rel='stylesheet' />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.4/MarkerCluster.Default.css' rel='stylesheet' />
+
+    <!-- bootstrap 4 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+
+
+</head>
+<body>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap 4 JS 
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>-->
+
+
+
+
+
+    <div class="container">
+        <div class="jumbotron my-2 ">
+          <h1 class="display-4">Ciclovias de Talca</h1>
+          <p class="lead">Herramienta para calcular el camino más corto entre puntos de las ciclovias de Talca</p>
+        </div>
+
+        <div class="row">
+          <div class="col-sm-12">
+            <div id="mapid" style="width: 99%; height: 400px;"></div>
+          </div>
+          <div class="col-sm-2 my-4">
+
+                <div class="card">
+                  <div class="card-header active" align="center">Routing</div>
+                  <div class="card-body">
+                    <h5 class="card-title" align="center">Options</h5>
+                    <a href="#" class="btn btn-primary" id="show-graph">Graph Layout</a>
+                    <a href="#" class="btn btn-primary my-3" id="show-nodes">Nodes Layout</a>
+                  </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <ul class="list-group my-4">
+                  <li class="list-group-item active">Source</li>
+                  <li class="list-group-item" id="source"></li>
+                  <!--<button type="button" class="close btn-sm" aria-label="Close" id="erase_s">
+                        <span aria-hidden="true">&times;</span>
+                    </button>-->
+
+                  <li class="list-group-item active">Target</li>
+                  <li class="list-group-item" id="target"></li>
+                  <!--<button type="button" class="close btn-sm" aria-label="Close" id="erase_t">
+                        <span aria-hidden="true">&times;</span>
+                    </button>-->
+                </ul>
+            </div>
+            <div class="col-sm-4 my-3">
+                <button type="button" class="btn btn-primary" id="erase">Erase</button>
+                <button type="button" class="btn btn-primary my-2" id="calculate">Calculate</button>
+
+                <ul class="list-group">
+                  <li class="list-group-item active">Rute<p id="dist"></p></li>
+                  <li class="list-group-item" id="rute"></li>
+                </ul>
+
+            </div>
+      </div>
+
+<script>
+    $(".alert-success").hide();
+	var mymap = L.map('mapid').setView([-35.4074204, -71.6509038], 12);
+    var mapboxAccessToken = 'pk.eyJ1Ijoic2hlcm5hOTAiLCJhIjoiY2puemMxeDhqMWgzODN2bmRuZ3Rzem9hdCJ9.ZSnfYHYewXKUhTbnOaer3w';
+	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token='+ mapboxAccessToken,{
+		maxZoom: 18,
+		id: 'mapbox.streets'
+	}).addTo(mymap);
+
+    function show_graph(map){
+        var myStyle = {
+            "color": "#ff7800",
+            "weight": 0.1,
+            "opacity": 0.65
+        };
+        var geoJsonLayer = new L.geoJson();
+        geoJsonLayer.addTo(map);
+        $.ajax({
+        dataType: "json",
+        url: "/draw_graph",
+        success: function(data) {
+            $(data.features).each(function(key, data) {
+                geoJsonLayer.addData(data);
+            });
+        }
+        });
+    }
+    var markers = L.markerClusterGroup();
+
+    var source_target =[];
+    var st_points=[];
+    function show_nodes(map){
+        var geoJsonLayer = new L.geoJson();
+        $.ajax({
+        dataType: "json",
+        url: "/draw_nodes",
+        success: function(data) {
+            $(data.features).each(function(key, data) {
+                geoJsonLayer.addData(data);
+                var marker=L.marker(new L.LatLng(data.geometry.coordinates[1],data.geometry.coordinates[0]))
+                .bindPopup(data.properties.name)
+                .on('click', function() {  
+                    source_target.push(marker);
+                    target_point = marker.getPopup().getContent() // make global
+                    st_points.push(target_point);
+                    console.log(target_point)
+                    var start = $('#s')
+                    var end = $('#t')
+                    // another ajax call
+                    if (start.length != 0 && end.length == 0){
+                        $.ajax({
+                            type: 'POST',
+                            url: "/intersection",
+                            data:  target_point, // id from popup
+                            dataType: 'text',
+                            success: function(res){
+                                $("#target").append("<li class='list-group-item' id='t'>" + res + '</li>');
+                                //document.getElementById("show-pair").textContent += res // add res to tag
+                            }
+                        })
+                    }
+                })
+
+                .on('click', function() {  
+                    source_target.push(marker);
+                    source_point = marker.getPopup().getContent()
+                    st_points.push(source_point);
+                    console.log(source_point)
+                    var start = $('#s')
+                    // another ajax call
+                    if (start.length == 0){
+                        $.ajax({
+                            type: 'POST',
+                            url: "/intersection",
+                            data: source_point, // id from popup
+                            dataType: 'text',
+                            success: function(res){
+                                $("#source").append("<li class='list-group-item' id='s'>" + res + '</li>');
+                                //document.getElementById("show-pair").textContent += res // add res to tag
+                            }
+                        })
+                    }
+                })
+
+
+                .addTo(markers);
+            });
+        }
+        });
+        
+        //markers.addLayer(geoJsonLayer);
+        map.addLayer(markers);
+    }
+
+    // to calculate shortest path
+    function dijkstra(){
+        console.log(st_points);
+        $.ajax({
+            type: 'POST',
+            url: "/dijkstra",
+            data: JSON.stringify({'points':st_points}), // id source and target
+            dataType: 'json',
+            success: function(res){
+                console.log(res);
+                var path = res.path;
+                var streets = res.streets;
+                var dist = res.d;
+                var sp = " ";
+                for (var i = 0; i < streets.length; i++) {
+                    // <li class="list-group-item">Dapibus ac facilisis in</li>
+                    // <span class='badge badge-primary badge-pill'>14</span>
+
+                    var n = i+1;
+                    $("#rute").append("<li class='list-group-item'>"+
+                        "<span class='badge badge-primary badge-pill'>" +n+"</span>"+sp+ streets[i] + '</li>');
+                }
+
+                $("#dist").append("Distancia total aprox: "+ Math.round(dist)+" metros");
+
+                var geoJsonLayer = new L.geoJson().on('click',function(){geoJsonLayer.clearLayer()});
+
+                geoJsonLayer.addTo(mymap);
+                $.ajax({
+                    type: 'POST',
+                    url: "/draw_streets",
+                    data: JSON.stringify({'path':path}), // path to draw
+                    dataType: 'json',
+                    success: function(res){
+                        console.log(res);
+                        $(res.features).each(function(key, res) {  
+                            geoJsonLayer.addData(res);
+                        });
+                        
+                        //document.getElementById("show-pair").textContent += res // add res to tag
+                    }
+                })
+                //document.getElementById("show-pair").textContent += res // add res to tag
+            }
+        })
+
+        // draw path
+        /*
+        var myStyle = {
+            "color": "#ff7800",
+            "weight": 0.1,
+            "opacity": 0.65
+        };
+        var geoJsonLayer = new L.geoJson();
+        geoJsonLayer.addTo(map);
+        $.ajax({
+            data: 
+            dataType: "json",
+            url: "/draw_path",
+            success: function(data) {
+                $(data.features).each(function(key, data) {
+                    geoJsonLayer.addData(data);
+                });
+            }
+        });*/
+    }
+
+    var source_target =[];
+	function onMapClick(e) {
+        var marker = L.marker(e.latlng).addTo(mymap);
+        source_target.push(marker);
+    }
+
+    function erase_s(){
+        $("#source").html("");
+        st_points.shift();
+        st_points.shift();
+    }
+    function erase_t(){
+        $("#target").html("");
+        st_points.pop();
+        st_points.pop();
+    }
+
+    function erase(){
+        $("#source").html("");
+        $("#target").html("");
+        $("#rute").html("");
+        $("#dist").html("");
+        st_points.length=0;
+        geoJsonLayer.clearLayers();
+    }
+
+    mymap.on('click', onMapClick);
+
+    $('#show-graph').click( function() {
+        show_graph(mymap);
+    });
+    $('#show-nodes').click( function() {
+        show_nodes(mymap);
+    });
+
+    $('#erase_s').click( function() {
+        erase_s();
+    });
+    $('#erase_t').click( function() {
+        erase_t();
+    });
+    $('#erase').click( function() {
+        erase();
+    });
+
+    $('#calculate').click( function() {
+        dijkstra();
+    });
+</script>
+
+
+
+</body>
+</html>
